@@ -40,9 +40,9 @@ class Utils {
     static class AutoCloseableExecutorService extends ThreadPoolExecutor implements AutoCloseable {
         /** A ThreadPoolExecutor that can be used in a try-with-resources block. */
         public AutoCloseableExecutorService(final String threadNamePrefix, final int numThreads) {
-            super(numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
+            super(numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
                     new ThreadFactory() {
-                        ThreadLocal<AtomicInteger> threadIdx = ThreadLocal.withInitial(() -> new AtomicInteger());
+                        final ThreadLocal<AtomicInteger> threadIdx = ThreadLocal.withInitial(AtomicInteger::new);
 
                         @Override
                         public Thread newThread(final Runnable r) {
@@ -55,18 +55,17 @@ class Utils {
         }
 
         /** Shut down thread pool on close(). */
+        @SuppressWarnings("ResultOfMethodCallIgnored")
         @Override
         public void close() {
             try {
                 // Prevent new tasks being submitted
                 shutdown();
-            } catch (Exception e) {
-            }
+            } catch (Exception ignore) {}
             try {
                 // Await termination of any running tasks
                 awaitTermination(2500, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-            }
+            } catch (InterruptedException ignore) {}
             try {
                 // Interrupt all the threads to terminate them, if awaitTermination() timed out
                 shutdownNow();
@@ -88,8 +87,7 @@ class Utils {
                 final T item = remove();
                 try {
                     item.close();
-                } catch (final Exception e) {
-                }
+                } catch (final Exception ignore) {}
             }
         }
     }
@@ -110,11 +108,10 @@ class Utils {
         /** Completion barrier. */
         @Override
         public void close() {
-            for (final var future : this) {
+            for (final Future<Void> future : this) {
                 try {
                     future.get();
-                } catch (final Exception e) {
-                }
+                } catch (final Exception ignore) {}
             }
         }
     }
